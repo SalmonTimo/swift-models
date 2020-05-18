@@ -26,7 +26,6 @@ func fetchLibriSpeechDataset(
   
   // TODO: Walk directory, unpack .flac files to spectrogram and align with transcript
   audio, transcripts = fetchFLACFiles(fromRoot: datasetRoot)
-  }
 
   fatalError("Incomplete implementation.")
 }
@@ -47,4 +46,25 @@ func fetchFiles(from root: URL
     }
   }
   return (flacURLs, transcriptURLs)
+}
+
+func alignTranscriptsWithFiles(transcripts: [URL],
+                               audioFiles: [URL]
+) -> Dictionary<String, [String]> {
+  var fileTranscriptMap = Dictionary<String, [String]>()
+  for path in transcripts {
+    do {
+      let data = try String(contentsOf: path)
+      let lines = data.components(separatedBy: .newlines)
+      for line in lines {
+        let components = line.components(separatedBy: " ")
+        let filePattern = components[0]
+        let words = Array(components.dropFirst())
+        fileTranscriptMap[filePattern] = words
+      }
+    } catch {
+      continue
+    }
+  }
+  return fileTranscriptMap
 }
