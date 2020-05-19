@@ -11,21 +11,22 @@ import TensorFlow
 func fetchLibriSpeechDataset(
   localStorageDirectory: URL,
   remoteBaseDirectory: String,
-  filename: String,
-) -> [(data: [Float32], Transcripts: [Int32])] {
+  filename: String
+) -> [(data: [Float32], transcript: [Int32])] {
   guard let remoteRoot = URL(string: remoteBaseDirectory) else {
     fatalError("Failed to create LibriSpeech root url: \(remoteBaseDirectory)")
   }
-  let datasetRoot = DatasetUtilities.download(
+  let datasetDirectory = DatasetUtilities.downloadResource(
     filename: filename,
     fileExtension: "tar.gz",
     remoteRoot: remoteRoot,
     localStorageDirectory: localStorageDirectory)
 
-  let (soundFiles, transcripts) = fetchFiles(from: datasetRoot)
+  let (soundFiles, transcripts) = fetchFiles(from: datasetDirectory)
   
-  // TODO: Walk directory, unpack .flac files to spectrogram and align with transcript
-  audio, transcripts = fetchFLACFiles(fromRoot: datasetRoot)
+  let mappedTranscripts = alignTranscriptsWithFiles(transcripts: transcripts, audioFiles: soundFiles)
+  // TODO: Audiofiles -> Spectrogram
+  // TODO: Label-encode transcripts with a vocab
 
   fatalError("Incomplete implementation.")
 }
@@ -55,14 +56,14 @@ func alignTranscriptsWithFiles(transcripts: [URL],
   for path in transcripts {
     do {
       let data = try String(contentsOf: path)
-      let lines = data.components(separatedBy: .newlines)
-      for line in lines {
+      for line in data.components(separatedBy: .newlines) {
         let components = line.components(separatedBy: " ")
         let filePattern = components[0]
         let words = Array(components.dropFirst())
         fileTranscriptMap[filePattern] = words
       }
     } catch {
+      print("Could not read, skipping " + path.absoluteString)
       continue
     }
   }
